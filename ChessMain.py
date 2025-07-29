@@ -35,7 +35,6 @@ def loadImages():
         path = os.path.join(image_folder, piece + ".png")
         IMAGES[piece] = p.transform.scale(p.image.load(path), (SQUARE_SIZE, SQUARE_SIZE))
 
-
 def showColorSelectionScreen(screen):
     """
     Hiển thị màn hình chọn màu cờ với GUI
@@ -120,7 +119,6 @@ def showColorSelectionScreen(screen):
 
         p.display.flip()
         clock.tick(MAX_FPS)
-
 
 def main():
     """
@@ -305,7 +303,6 @@ def main():
         clock.tick(MAX_FPS)
         p.display.flip()
 
-
 def drawGameState(screen, game_state, valid_moves, square_selected, move_log_font, undo_button_font):
     """
     Vẽ toàn bộ game state hiện tại
@@ -316,7 +313,6 @@ def drawGameState(screen, game_state, valid_moves, square_selected, move_log_fon
     drawMoveLog(screen, game_state, move_log_font)
     drawUndoButton(screen, undo_button_font)
     drawResetButton(screen, undo_button_font)
-
 
 # Vẽ toàn bộ trạng thái bàn cờ
 # Vẽ các ô bàn cờ (đen/trắng xen kẽ)
@@ -336,7 +332,6 @@ def drawBoard(screen):
             color = colors[((row + col) % 2)]
             p.draw.rect(screen, color,
                         p.Rect(display_col * SQUARE_SIZE, display_row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
-
 
 # Tô sáng
 def highlightSquares(screen, game_state, valid_moves, square_selected):
@@ -401,11 +396,9 @@ def drawPieces(screen, board):
                 screen.blit(IMAGES[piece],
                             p.Rect(display_col * SQUARE_SIZE, display_row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
-
 def drawMoveLog(screen, game_state, font):
     """
-    Draws the move log.
-
+    Draws the move log with scrolling support to prevent overlapping.
     """
     move_log_rect = p.Rect(BOARD_WIDTH, 0, MOVE_LOG_PANEL_WIDTH, MOVE_LOG_PANEL_HEIGHT)
     p.draw.rect(screen, p.Color('white'), move_log_rect)
@@ -429,12 +422,15 @@ def drawMoveLog(screen, game_state, font):
         black_move = str(move_log[i + 1]) if i + 1 < len(move_log) else ""
         move_texts.append((move_number, white_move, black_move))
 
-    moves_per_row = 3
+    # Thêm hỗ trợ cuộn
+    max_rows = (MOVE_LOG_PANEL_HEIGHT - header_y - 25) // (font.get_height() + 5)  # Số dòng tối đa hiển thị
+    start_index = max(0, len(move_texts) - max_rows)  # Chỉ hiển thị các nước đi mới nhất
+
     padding = 5
-    line_spacing = 2
+    line_spacing = 5
     text_y = header_y + 25
 
-    for move_number, white_move, black_move in move_texts:
+    for i, (move_number, white_move, black_move) in enumerate(move_texts[start_index:]):
         text = font.render(move_number, True, p.Color('black'))
         screen.blit(text, (col_x[0] + padding, text_y))
 
@@ -443,8 +439,8 @@ def drawMoveLog(screen, game_state, font):
 
         text = font.render(black_move, True, p.Color('black'))
         screen.blit(text, (col_x[2] + padding, text_y))
-        text_y = text.get_height() + line_spacing
 
+        text_y += text.get_height() + line_spacing
 
 def drawResetButton(screen, font):
     """
@@ -461,7 +457,6 @@ def drawResetButton(screen, font):
     p.draw.rect(screen, p.Color("black"), reset_button, 2)
     screen.blit(reset_text, (reset_button.x + 10, reset_button.y + 5))
 
-
 # Hiển thị dòng thông báo khi kết thúc ván (checkmate/stalemate)
 def drawEndGameText(screen, text):
     font = p.font.SysFont("Helvetica", 32, True, False)
@@ -471,7 +466,6 @@ def drawEndGameText(screen, text):
     screen.blit(text_object, text_location)
     text_object = font.render(text, False, p.Color('black'))
     screen.blit(text_object, text_location.move(2, 2))
-
 
 # Thực hiện hiệu ứng di chuyển quân cờ từng frame
 def animateMove(move, screen, board, clock):
@@ -548,7 +542,6 @@ def drawUndoButton(screen, font):
     p.draw.rect(screen, p.Color("black"), undo_button, 2)
     screen.blit(undo_text, (undo_button.x + 10, undo_button.y + 5))
 
-
 def drawAgainButton(screen, font):
     """
     Draw again button
@@ -564,7 +557,6 @@ def drawAgainButton(screen, font):
     text_rect = text.get_rect(center=button_rect.center)
     screen.blit(text, text_rect)
     return button_rect
-
 
 if __name__ == "__main__":
     main()
