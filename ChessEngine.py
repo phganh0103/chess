@@ -1,6 +1,7 @@
+
 class GameState:
     def __init__(self):
-       
+
         self.board = [
             ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
             ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
@@ -26,13 +27,34 @@ class GameState:
         self.current_castling_rights = CastleRights(True, True, True, True)
         self.castle_rights_log = [CastleRights(self.current_castling_rights.wks, self.current_castling_rights.bks,
                                                self.current_castling_rights.wqs, self.current_castling_rights.bqs)]
+        self.position_count = {}  # Track position repetitions
+
+    def isThreefoldRepetition(self):
+        """Check for threefold repetition"""
+        # Convert current position to string
+        position_key = self.boardToString()
+        return self.position_count.get(position_key, 0) >= 3
+
+    def boardToString(self):
+        """Convert board to string for comparison"""
+        board_str = ""
+        for row in self.board:
+            for piece in row:
+                board_str += piece
+        # Add castling rights and en passant
+        board_str += str(self.white_to_move)
+        board_str += str(self.current_castling_rights.wks)
+        board_str += str(self.current_castling_rights.wqs)
+        board_str += str(self.current_castling_rights.bks)
+        board_str += str(self.current_castling_rights.bqs)
+        return board_str
 
     def makeMove(self, move):
-        #Thực hiện nước đi được chọn và cập nhật trạng thái trò chơi
+        # Thực hiện nước đi được chọn và cập nhật trạng thái trò chơi
         self.board[move.start_row][move.start_col] = "--"
         self.board[move.end_row][move.end_col] = move.piece_moved
-        self.move_log.append(move) 
-        self.white_to_move = not self.white_to_move  
+        self.move_log.append(move)
+        self.white_to_move = not self.white_to_move
         # update king's location if moved
         if move.piece_moved == "wK":
             self.white_king_location = (move.end_row, move.end_col)
@@ -74,9 +96,17 @@ class GameState:
         self.updateCastleRights(move)
         self.castle_rights_log.append(CastleRights(self.current_castling_rights.wks, self.current_castling_rights.bks,
                                                    self.current_castling_rights.wqs, self.current_castling_rights.bqs))
+        # Update position count AFTER making move
+        position_key = self.boardToString()
+        self.position_count[position_key] = self.position_count.get(position_key, 0) + 1
 
     def undoMove(self):
-        
+        # Decrease position count BEFORE undoing
+        position_key = self.boardToString()
+        if position_key in self.position_count:
+            self.position_count[position_key] -= 1
+            if self.position_count[position_key] <= 0:
+                del self.position_count[position_key]
         if len(self.move_log) != 0:  # make sure that there is a move to undo
             move = self.move_log.pop()
             self.board[move.start_row][move.start_col] = move.piece_moved
@@ -307,7 +337,7 @@ class GameState:
         return in_check, pins, checks
 
     def getPawnMoves(self, row, col, moves):
-       
+
         piece_pinned = False
         pin_direction = ()
         for i in range(len(self.pins) - 1, -1, -1):
@@ -626,3 +656,4 @@ class Move:
         if self.is_capture:
             move_string += "x"
         return move_string + end_square
+
