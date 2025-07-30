@@ -13,19 +13,32 @@ DIMENSION = 8  # số hàng,cột trên bàn cờ
 SQUARE_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15
 IMAGES = {}
-UNDO_BUTTON_WIDTH = 80
-UNDO_BUTTON_HEIGHT = 30
-RESET_BUTTON_WIDTH = 80
-RESET_BUTTON_HEIGHT = 30
-MENU_BUTTON_WIDTH = 80
-MENU_BUTTON_HEIGHT = 30
-BUTTON_PANEL_HEIGHT = 60
-UNDO_BUTTON_X = BOARD_WIDTH
-UNDO_BUTTON_Y = BOARD_HEIGHT + 15
-RESET_BUTTON_X = BOARD_WIDTH + 85
-RESET_BUTTON_Y = BOARD_HEIGHT + 15
-MENU_BUTTON_X = BOARD_WIDTH + 170
-MENU_BUTTON_Y = BOARD_HEIGHT + 15
+
+# Kích thước và vị trí mới cho các nút điều khiển
+UNDO_BUTTON_WIDTH = 90
+UNDO_BUTTON_HEIGHT = 40
+RESET_BUTTON_WIDTH = 90
+RESET_BUTTON_HEIGHT = 40
+MENU_BUTTON_WIDTH = 90
+MENU_BUTTON_HEIGHT = 40
+BUTTON_PANEL_HEIGHT = 60 # Chiều cao của panel chứa các nút
+
+# Tính toán vị trí X để căn giữa các nút dưới bàn cờ
+BUTTON_SPACING = 15 # Khoảng cách giữa các nút
+TOTAL_BUTTONS_WIDTH = UNDO_BUTTON_WIDTH + RESET_BUTTON_WIDTH + MENU_BUTTON_WIDTH + (2 * BUTTON_SPACING)
+START_BUTTON_X = (BOARD_WIDTH - TOTAL_BUTTONS_WIDTH) // 2
+
+UNDO_BUTTON_X = START_BUTTON_X
+RESET_BUTTON_X = UNDO_BUTTON_X + UNDO_BUTTON_WIDTH + BUTTON_SPACING
+MENU_BUTTON_X = RESET_BUTTON_X + RESET_BUTTON_WIDTH + BUTTON_SPACING
+
+# Vị trí Y cho tất cả các nút (căn giữa theo chiều dọc trong panel)
+BUTTON_ROW_Y = BOARD_HEIGHT + (BUTTON_PANEL_HEIGHT - UNDO_BUTTON_HEIGHT) // 2
+
+UNDO_BUTTON_Y = BUTTON_ROW_Y
+RESET_BUTTON_Y = BUTTON_ROW_Y
+MENU_BUTTON_Y = BUTTON_ROW_Y
+
 
 PLAY_AGAIN_BUTTON_WIDTH = 120
 PLAY_AGAIN_BUTTON_HEIGHT = 60
@@ -470,48 +483,81 @@ def drawMoveLog(screen, game_state, font):
 
 def drawUndoButton(screen, font):
     """
-    Vẽ Undo button
+    Vẽ Undo button với thiết kế cải tiến
     """
     undo_text = font.render("Undo", True, p.Color("black"))
     undo_button = p.Rect(UNDO_BUTTON_X, UNDO_BUTTON_Y, UNDO_BUTTON_WIDTH, UNDO_BUTTON_HEIGHT)
 
-    # Kiểm tra hover
     mouse_pos = p.mouse.get_pos()
-    button_color = p.Color("lightblue") if undo_button.collidepoint(mouse_pos) else p.Color("lightgray")
+    is_hovered = undo_button.collidepoint(mouse_pos)
 
-    p.draw.rect(screen, button_color, undo_button)
-    p.draw.rect(screen, p.Color("black"), undo_button, 2)
-    screen.blit(undo_text, (undo_button.x + 10, undo_button.y + 5))
+    # Đổ bóng
+    shadow_color = p.Color(50, 50, 50, 100) # Màu xám đậm, trong suốt
+    p.draw.rect(screen, shadow_color, undo_button.move(2, 2), border_radius=5)
+
+    # Nền nút (mô phỏng gradient)
+    top_color = p.Color(173, 216, 230) # LightBlue
+    bottom_color = p.Color(135, 206, 250) # LightSkyBlue
+    # Màu khi hover
+    button_color = top_color if not is_hovered else p.Color(100, 180, 255)
+
+    p.draw.rect(screen, button_color, undo_button, border_radius=5)
+    p.draw.rect(screen, p.Color("darkblue"), undo_button, 2, border_radius=5) # Viền đậm hơn
+
+    text_rect = undo_text.get_rect(center=undo_button.center)
+    screen.blit(undo_text, text_rect)
 
 def drawResetButton(screen, font):
     """
-    Vẽ Reset button
+    Vẽ Reset button với thiết kế cải tiến
     """
     reset_text = font.render("Reset", True, p.Color("black"))
     reset_button = p.Rect(RESET_BUTTON_X, RESET_BUTTON_Y, RESET_BUTTON_WIDTH, RESET_BUTTON_HEIGHT)
 
-    # Kiểm tra hover
     mouse_pos = p.mouse.get_pos()
-    button_color = p.Color("lightcoral") if reset_button.collidepoint(mouse_pos) else p.Color("lightgray")
+    is_hovered = reset_button.collidepoint(mouse_pos)
 
-    p.draw.rect(screen, button_color, reset_button)
-    p.draw.rect(screen, p.Color("black"), reset_button, 2)
-    screen.blit(reset_text, (reset_button.x + 10, reset_button.y + 5))
+    # Đổ bóng
+    shadow_color = p.Color(50, 50, 50, 100)
+    p.draw.rect(screen, shadow_color, reset_button.move(2, 2), border_radius=5)
+
+    # Nền nút
+    top_color = p.Color(255, 160, 122) # LightSalmon
+    bottom_color = p.Color(255, 99, 71) # Tomato
+    # Màu khi hover
+    button_color = top_color if not is_hovered else p.Color(255, 60, 60)
+
+    p.draw.rect(screen, button_color, reset_button, border_radius=5)
+    p.draw.rect(screen, p.Color("darkred"), reset_button, 2, border_radius=5)
+
+    text_rect = reset_text.get_rect(center=reset_button.center)
+    screen.blit(reset_text, text_rect)
 
 def drawMenuButton(screen, font):
     """
-    Vẽ Back to Menu button
+    Vẽ Back to Menu button với thiết kế cải tiến
     """
     menu_text = font.render("Menu", True, p.Color("black"))
     menu_button = p.Rect(MENU_BUTTON_X, MENU_BUTTON_Y, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT)
 
-    # Kiểm tra hover
     mouse_pos = p.mouse.get_pos()
-    button_color = p.Color("lightgreen") if menu_button.collidepoint(mouse_pos) else p.Color("lightgray")
+    is_hovered = menu_button.collidepoint(mouse_pos)
 
-    p.draw.rect(screen, button_color, menu_button)
-    p.draw.rect(screen, p.Color("black"), menu_button, 2)
-    screen.blit(menu_text, (menu_button.x + 10, menu_button.y + 5))
+    # Đổ bóng
+    shadow_color = p.Color(50, 50, 50, 100)
+    p.draw.rect(screen, shadow_color, menu_button.move(2, 2), border_radius=5)
+
+    # Nền nút
+    top_color = p.Color(144, 238, 144) # LightGreen
+    bottom_color = p.Color(60, 179, 113) # MediumSeaGreen
+    # Màu khi hover
+    button_color = top_color if not is_hovered else p.Color(0, 200, 0)
+
+    p.draw.rect(screen, button_color, menu_button, border_radius=5)
+    p.draw.rect(screen, p.Color("darkgreen"), menu_button, 2, border_radius=5)
+
+    text_rect = menu_text.get_rect(center=menu_button.center)
+    screen.blit(menu_text, text_rect)
 
 def drawEndGameText(screen, text):
     """
