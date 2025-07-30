@@ -13,11 +13,19 @@ DIMENSION = 8  # số hàng,cột trên bàn cờ
 SQUARE_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15
 IMAGES = {}
-UNDO_BUTTON_WITDH = 100
-UNDO_BUTTON_HEIGHT = 40
-UNDO_BUTTON_X = BOARD_WIDTH // 2 - UNDO_BUTTON_WITDH // 2
-UNDO_BUTTON_Y = BOARD_HEIGHT + 10
+UNDO_BUTTON_WIDTH = 80
+UNDO_BUTTON_HEIGHT = 30
+RESET_BUTTON_WIDTH = 80
+RESET_BUTTON_HEIGHT = 30
+MENU_BUTTON_WIDTH = 80
+MENU_BUTTON_HEIGHT = 30
 BUTTON_PANEL_HEIGHT = 60
+UNDO_BUTTON_X = BOARD_WIDTH
+UNDO_BUTTON_Y = BOARD_HEIGHT + 15
+RESET_BUTTON_X = BOARD_WIDTH + 85
+RESET_BUTTON_Y = BOARD_HEIGHT + 15
+MENU_BUTTON_X = BOARD_WIDTH + 170
+MENU_BUTTON_Y = BOARD_HEIGHT + 15
 
 PLAY_AGAIN_BUTTON_WIDTH = 120
 PLAY_AGAIN_BUTTON_HEIGHT = 60
@@ -125,7 +133,6 @@ def main():
     Main driver cho game. Xử lý user input và update graphics
     """
     p.init()
-    BUTTON_PANEL_HEIGHT = 60
     screen = p.display.set_mode((BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT + BUTTON_PANEL_HEIGHT))
     p.display.set_caption("Chess Game - Select Mode")
     clock = p.time.Clock()
@@ -133,70 +140,106 @@ def main():
     # Load images trước
     loadImages()
 
-    # Hiển thị màn hình chọn màu
-    player_one, player_two = showColorSelectionScreen(screen)
-
-    # Setup game sau khi chọn
-    p.display.set_caption("Chess Game")
-    screen.fill(p.Color("white"))
-    move_log_font = p.font.SysFont("Arial", 14, False, False)
-    undo_button_font = p.font.SysFont("Arial", 20, True, False)
-    game_state = ChessEngine.GameState()
-    valid_moves = game_state.getValidMoves()
-    move_made = False
-    animate = False
-    square_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))
-    player_clicks = []  # keep track of player clicks (two tuples: [(6, 4), (4, 4)])
-    game_over = False
-    ai_thinking = False
-    move_undone = False
-    move_finder_process = None
-    move_log_text = []
-
     while True:
-        human_turn = (game_state.white_to_move and player_one) or (not game_state.white_to_move and player_two)
+        # Hiển thị màn hình chọn màu
+        player_one, player_two = showColorSelectionScreen(screen)
 
-        for event in p.event.get():
-            if event.type == p.QUIT:
-                running = False
-                p.quit()
-                sys.exit()
-            # mouse handler
-            elif event.type == p.MOUSEBUTTONDOWN:
-                if not game_over:
-                    location = p.mouse.get_pos()  # (x, y) location of mouse
-                    if location[0] < BOARD_WIDTH and location[1] < BOARD_HEIGHT:
-                        # Chuyển đổi tọa độ mouse thành board coordinates
-                        col = location[0] // SQUARE_SIZE
-                        row = location[1] // SQUARE_SIZE
+        # Setup game sau khi chọn
+        p.display.set_caption("Chess Game")
+        screen.fill(p.Color("white"))
+        move_log_font = p.font.SysFont("Arial", 14, False, False)
+        button_font = p.font.SysFont("Arial", 16, True, False)
+        game_state = ChessEngine.GameState()
+        valid_moves = game_state.getValidMoves()
+        move_made = False
+        animate = False
+        square_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))
+        player_clicks = []  # keep track of player clicks (two tuples: [(6, 4), (4, 4)])
+        game_over = False
+        ai_thinking = False
+        move_undone = False
+        move_finder_process = None
+        move_log_text = []
 
-                        # Nếu board bị flip, cần đảo ngược tọa độ
-                        if FLIP_BOARD:
-                            row = DIMENSION - 1 - row
-                            col = DIMENSION - 1 - col
+        while True:
+            human_turn = (game_state.white_to_move and player_one) or (not game_state.white_to_move and player_two)
 
-                        if square_selected == (row, col) or not human_turn:  # user clicked the same square twice
-                            square_selected = ()  # deselect
-                            player_clicks = []  # clear player clicks
-                        else:
-                            square_selected = (row, col)
-                            player_clicks.append(square_selected)  # append for both 1st and 2nd clicks
-                        if len(player_clicks) == 2 and human_turn:  # after 2nd click
-                            move = ChessEngine.Move(player_clicks[0], player_clicks[1], game_state.board)
-                            print(move.getChessNotation())
-                            for i in range(len(valid_moves)):
-                                if move == valid_moves[i]:
-                                    game_state.makeMove(valid_moves[i])
-                                    move_made = True
-                                    animate = True
-                                    square_selected = ()  # reset user clicks
-                                    player_clicks = []
-                            if not move_made:
-                                player_clicks = [square_selected]
+            for event in p.event.get():
+                if event.type == p.QUIT:
+                    p.quit()
+                    sys.exit()
+                # mouse handler
+                elif event.type == p.MOUSEBUTTONDOWN:
+                    if not game_over:
+                        location = p.mouse.get_pos()  # (x, y) location of mouse
+                        if location[0] < BOARD_WIDTH and location[1] < BOARD_HEIGHT:
+                            # Chuyển đổi tọa độ mouse thành board coordinates
+                            col = location[0] // SQUARE_SIZE
+                            row = location[1] // SQUARE_SIZE
 
-                    # Kiểm tra click vào undo button
-                    elif BOARD_WIDTH <= location[0] <= BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH and BOARD_HEIGHT <= location[
-                        1] <= BOARD_HEIGHT + 30:
+                            # Nếu board bị flip, cần đảo ngược tọa độ
+                            if FLIP_BOARD:
+                                row = DIMENSION - 1 - row
+                                col = DIMENSION - 1 - col
+
+                            if square_selected == (row, col) or not human_turn:  # user clicked the same square twice
+                                square_selected = ()  # deselect
+                                player_clicks = []  # clear player clicks
+                            else:
+                                square_selected = (row, col)
+                                player_clicks.append(square_selected)  # append for both 1st and 2nd clicks
+                            if len(player_clicks) == 2 and human_turn:  # after 2nd click
+                                move = ChessEngine.Move(player_clicks[0], player_clicks[1], game_state.board)
+                                print(move.getChessNotation())
+                                for i in range(len(valid_moves)):
+                                    if move == valid_moves[i]:
+                                        game_state.makeMove(valid_moves[i])
+                                        move_made = True
+                                        animate = True
+                                        square_selected = ()  # reset user clicks
+                                        player_clicks = []
+                                if not move_made:
+                                    player_clicks = [square_selected]
+
+                        # Kiểm tra click vào undo button
+                        elif UNDO_BUTTON_X <= location[0] <= UNDO_BUTTON_X + UNDO_BUTTON_WIDTH and UNDO_BUTTON_Y <= location[1] <= UNDO_BUTTON_Y + UNDO_BUTTON_HEIGHT:
+                            if len(game_state.move_log) > 0:
+                                # Undo 2 moves (player + AI)
+                                game_state.undoMove()
+                                if len(game_state.move_log) > 0:
+                                    game_state.undoMove()
+                                move_made = True
+                                animate = False
+                                game_over = False
+                                if ai_thinking:
+                                    move_finder_process.terminate()
+                                    ai_thinking = False
+                                move_undone = True
+
+                        # Kiểm tra click vào reset button
+                        elif RESET_BUTTON_X <= location[0] <= RESET_BUTTON_X + RESET_BUTTON_WIDTH and RESET_BUTTON_Y <= location[1] <= RESET_BUTTON_Y + RESET_BUTTON_HEIGHT:
+                            game_state = ChessEngine.GameState()
+                            valid_moves = game_state.getValidMoves()
+                            square_selected = ()
+                            player_clicks = []
+                            move_made = False
+                            animate = False
+                            game_over = False
+                            if ai_thinking:
+                                move_finder_process.terminate()
+                                ai_thinking = False
+                            move_undone = True
+
+                        # Kiểm tra click vào back to menu button
+                        elif MENU_BUTTON_X <= location[0] <= MENU_BUTTON_X + MENU_BUTTON_WIDTH and MENU_BUTTON_Y <= location[1] <= MENU_BUTTON_Y + MENU_BUTTON_HEIGHT:
+                            if ai_thinking:
+                                move_finder_process.terminate()
+                                ai_thinking = False
+                            break  # Thoát vòng lặp game để quay lại menu
+
+                # key handlers
+                elif event.type == p.KEYDOWN:
+                    if event.key == p.K_z:  # undo when 'z' is pressed
                         if len(game_state.move_log) > 0:
                             # Undo 2 moves (player + AI)
                             game_state.undoMove()
@@ -209,10 +252,7 @@ def main():
                                 move_finder_process.terminate()
                                 ai_thinking = False
                             move_undone = True
-
-                    # Kiểm tra click vào reset button
-                    elif BOARD_WIDTH <= location[0] <= BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH and BOARD_HEIGHT + 30 <= \
-                            location[1] <= BOARD_HEIGHT + 60:
+                    elif event.key == p.K_r:  # reset the board when 'r' is pressed
                         game_state = ChessEngine.GameState()
                         valid_moves = game_state.getValidMoves()
                         square_selected = ()
@@ -224,86 +264,63 @@ def main():
                             move_finder_process.terminate()
                             ai_thinking = False
                         move_undone = True
-
-            # key handlers
-            elif event.type == p.KEYDOWN:
-                if event.key == p.K_z:  # undo when 'z' is pressed
-                    if len(game_state.move_log) > 0:
-                        # Undo 2 moves (player + AI)
-                        game_state.undoMove()
-                        if len(game_state.move_log) > 0:
-                            game_state.undoMove()
-                        move_made = True
-                        animate = False
-                        game_over = False
+                    elif event.key == p.K_m:  # back to menu when 'm' is pressed
                         if ai_thinking:
                             move_finder_process.terminate()
                             ai_thinking = False
-                        move_undone = True
-                elif event.key == p.K_r:  # reset the board when 'r' is pressed
-                    game_state = ChessEngine.GameState()
-                    valid_moves = game_state.getValidMoves()
-                    square_selected = ()
-                    player_clicks = []
-                    move_made = False
-                    animate = False
-                    game_over = False
-                    if ai_thinking:
-                        move_finder_process.terminate()
-                        ai_thinking = False
-                    move_undone = True
+                        break  # Thoát vòng lặp game để quay lại menu
 
-        # AI move finder logic
-        if not game_over and not human_turn and not move_undone:
-            if not ai_thinking:
-                ai_thinking = True
-                print("thinking...")
-                return_queue = Queue()
-                move_finder_process = Process(target=ChessAI.findBestMove, args=(game_state, valid_moves, return_queue))
-                move_finder_process.start()  # call findBestMove(game_state, valid_moves, return_queue)
+            # AI move finder logic
+            if not game_over and not human_turn and not move_undone:
+                if not ai_thinking:
+                    ai_thinking = True
+                    print("thinking...")
+                    return_queue = Queue()
+                    move_finder_process = Process(target=ChessAI.findBestMove, args=(game_state, valid_moves, return_queue))
+                    move_finder_process.start()  # call findBestMove(game_state, valid_moves, return_queue)
 
-            if not move_finder_process.is_alive():
-                print("done thinking")
-                ai_move = return_queue.get()
-                if ai_move is None:
-                    ai_move = ChessAI.findRandomMove(valid_moves)
-                game_state.makeMove(ai_move)
-                move_made = True
-                animate = True
-                ai_thinking = False
+                if not move_finder_process.is_alive():
+                    print("done thinking")
+                    ai_move = return_queue.get()
+                    if ai_move is None:
+                        ai_move = ChessAI.findRandomMove(valid_moves)
+                    game_state.makeMove(ai_move)
+                    move_made = True
+                    animate = True
+                    ai_thinking = False
 
-        if move_made:
-            if animate:
-                animateMove(game_state.move_log[-1], screen, game_state.board, clock)
-            valid_moves = game_state.getValidMoves()
-            move_made = False
-            animate = False
-            move_undone = False
+            if move_made:
+                if animate:
+                    animateMove(game_state.move_log[-1], screen, game_state.board, clock)
+                valid_moves = game_state.getValidMoves()
+                move_made = False
+                animate = False
+                move_undone = False
 
-        drawGameState(screen, game_state, valid_moves, square_selected, move_log_font, undo_button_font)
+            drawGameState(screen, game_state, valid_moves, square_selected, move_log_font, button_font)
 
-        if not game_over:
-            drawMoveLog(screen, game_state, move_log_font)
+            if not game_over:
+                drawMoveLog(screen, game_state, move_log_font)
 
-        if game_state.checkmate:
-            game_over = True
-            if game_state.white_to_move:
-                drawEndGameText(screen, 'Black wins by checkmate')
-            else:
-                drawEndGameText(screen, 'White wins by checkmate')
+            if game_state.checkmate:
+                game_over = True
+                if game_state.white_to_move:
+                    drawEndGameText(screen, 'Black wins by checkmate')
+                else:
+                    drawEndGameText(screen, 'White wins by checkmate')
 
-        elif game_state.stalemate:
-            game_over = True
-            drawEndGameText(screen, 'Stalemate')
+            elif game_state.stalemate:
+                game_over = True
+                drawEndGameText(screen, 'Stalemate')
 
-        elif game_state.isThreefoldRepetition():
-            game_over = True
-            drawEndGameText(screen, 'Draw by threefold repetition')
+            elif game_state.isThreefoldRepetition():
+                game_over = True
+                drawEndGameText(screen, 'Draw by threefold repetition')
 
-        clock.tick(MAX_FPS)
-        p.display.flip()
+            clock.tick(MAX_FPS)
+            p.display.flip()
 
-def drawGameState(screen, game_state, valid_moves, square_selected, move_log_font, undo_button_font):
+def drawGameState(screen, game_state, valid_moves, square_selected, move_log_font, button_font):
     """
     Vẽ toàn bộ game state hiện tại
     """
@@ -311,8 +328,9 @@ def drawGameState(screen, game_state, valid_moves, square_selected, move_log_fon
     highlightSquares(screen, game_state, valid_moves, square_selected)
     drawPieces(screen, game_state.board)  # Vẽ quân cờ
     drawMoveLog(screen, game_state, move_log_font)
-    drawUndoButton(screen, undo_button_font)
-    drawResetButton(screen, undo_button_font)
+    drawUndoButton(screen, button_font)
+    drawResetButton(screen, button_font)
+    drawMenuButton(screen, button_font)
 
 # Vẽ toàn bộ trạng thái bàn cờ
 # Vẽ các ô bàn cờ (đen/trắng xen kẽ)
@@ -442,12 +460,27 @@ def drawMoveLog(screen, game_state, font):
 
         text_y += text.get_height() + line_spacing
 
+def drawUndoButton(screen, font):
+    """
+    Vẽ Undo button
+    """
+    undo_text = font.render("Undo", True, p.Color("black"))
+    undo_button = p.Rect(UNDO_BUTTON_X, UNDO_BUTTON_Y, UNDO_BUTTON_WIDTH, UNDO_BUTTON_HEIGHT)
+
+    # Kiểm tra hover
+    mouse_pos = p.mouse.get_pos()
+    button_color = p.Color("lightblue") if undo_button.collidepoint(mouse_pos) else p.Color("lightgray")
+
+    p.draw.rect(screen, button_color, undo_button)
+    p.draw.rect(screen, p.Color("black"), undo_button, 2)
+    screen.blit(undo_text, (undo_button.x + 10, undo_button.y + 5))
+
 def drawResetButton(screen, font):
     """
     Vẽ Reset button
     """
     reset_text = font.render("Reset", True, p.Color("black"))
-    reset_button = p.Rect(BOARD_WIDTH, BOARD_HEIGHT + 30, MOVE_LOG_PANEL_WIDTH, 30)
+    reset_button = p.Rect(RESET_BUTTON_X, RESET_BUTTON_Y, RESET_BUTTON_WIDTH, RESET_BUTTON_HEIGHT)
 
     # Kiểm tra hover
     mouse_pos = p.mouse.get_pos()
@@ -457,8 +490,25 @@ def drawResetButton(screen, font):
     p.draw.rect(screen, p.Color("black"), reset_button, 2)
     screen.blit(reset_text, (reset_button.x + 10, reset_button.y + 5))
 
-# Hiển thị dòng thông báo khi kết thúc ván (checkmate/stalemate)
+def drawMenuButton(screen, font):
+    """
+    Vẽ Back to Menu button
+    """
+    menu_text = font.render("Menu", True, p.Color("black"))
+    menu_button = p.Rect(MENU_BUTTON_X, MENU_BUTTON_Y, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT)
+
+    # Kiểm tra hover
+    mouse_pos = p.mouse.get_pos()
+    button_color = p.Color("lightgreen") if menu_button.collidepoint(mouse_pos) else p.Color("lightgray")
+
+    p.draw.rect(screen, button_color, menu_button)
+    p.draw.rect(screen, p.Color("black"), menu_button, 2)
+    screen.blit(menu_text, (menu_button.x + 10, menu_button.y + 5))
+
 def drawEndGameText(screen, text):
+    """
+    Hiển thị dòng thông báo khi kết thúc ván (checkmate/stalemate)
+    """
     font = p.font.SysFont("Helvetica", 32, True, False)
     text_object = font.render(text, False, p.Color("gray"))
     text_location = p.Rect(0, 0, BOARD_WIDTH, BOARD_HEIGHT).move(BOARD_WIDTH / 2 - text_object.get_width() / 2,
@@ -467,7 +517,6 @@ def drawEndGameText(screen, text):
     text_object = font.render(text, False, p.Color('black'))
     screen.blit(text_object, text_location.move(2, 2))
 
-# Thực hiện hiệu ứng di chuyển quân cờ từng frame
 def animateMove(move, screen, board, clock):
     """
     Animating a move với flip board support
@@ -527,29 +576,10 @@ def animateMove(move, screen, board, clock):
         p.display.flip()
         clock.tick(60)
 
-def drawUndoButton(screen, font):
-    """
-    Vẽ Undo button
-    """
-    undo_text = font.render("Undo", True, p.Color("black"))
-    undo_button = p.Rect(BOARD_WIDTH, BOARD_HEIGHT, MOVE_LOG_PANEL_WIDTH, 30)
-
-    # Kiểm tra hover
-    mouse_pos = p.mouse.get_pos()
-    button_color = p.Color("lightblue") if undo_button.collidepoint(mouse_pos) else p.Color("lightgray")
-
-    p.draw.rect(screen, button_color, undo_button)
-    p.draw.rect(screen, p.Color("black"), undo_button, 2)
-    screen.blit(undo_text, (undo_button.x + 10, undo_button.y + 5))
-
 def drawAgainButton(screen, font):
     """
     Draw again button
-    :param screen:
-    :param font:
-    :return:
     """
-
     button_rect = p.Rect(PLAY_AGAIN_BUTTON_X, PLAY_AGAIN_BUTTON_Y, PLAY_AGAIN_BUTTON_WIDTH, PLAY_AGAIN_BUTTON_HEIGHT)
     p.draw.rect(screen, p.Color('white'), button_rect)
     p.draw.rect(screen, p.Color('black'), button_rect, 2)
