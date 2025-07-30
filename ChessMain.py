@@ -140,7 +140,7 @@ def main():
     # Load images trước
     loadImages()
 
-    while True:
+    while True: # Vòng lặp chính để quay lại màn hình lựa chọn
         # Hiển thị màn hình chọn màu
         player_one, player_two = showColorSelectionScreen(screen)
 
@@ -161,7 +161,9 @@ def main():
         move_finder_process = None
         move_log_text = []
 
-        while True:
+        # Thêm cờ để kiểm soát vòng lặp trò chơi
+        running_game = True
+        while running_game: # Vòng lặp trò chơi
             human_turn = (game_state.white_to_move and player_one) or (not game_state.white_to_move and player_two)
 
             for event in p.event.get():
@@ -235,7 +237,8 @@ def main():
                             if ai_thinking:
                                 move_finder_process.terminate()
                                 ai_thinking = False
-                            break  # Thoát vòng lặp game để quay lại menu
+                            running_game = False  # Đặt cờ để thoát vòng lặp trò chơi
+                            break  # Thoát vòng lặp event
 
                 # key handlers
                 elif event.type == p.KEYDOWN:
@@ -268,7 +271,12 @@ def main():
                         if ai_thinking:
                             move_finder_process.terminate()
                             ai_thinking = False
-                        break  # Thoát vòng lặp game để quay lại menu
+                        running_game = False  # Đặt cờ để thoát vòng lặp trò chơi
+                        break  # Thoát vòng lặp event
+
+            # Kiểm tra cờ sau vòng lặp event để thoát vòng lặp trò chơi
+            if not running_game:
+                break
 
             # AI move finder logic
             if not game_over and not human_turn and not move_undone:
