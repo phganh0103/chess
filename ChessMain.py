@@ -43,7 +43,7 @@ MENU_BUTTON_Y = BUTTON_ROW_Y
 PLAY_AGAIN_BUTTON_WIDTH = 120
 PLAY_AGAIN_BUTTON_HEIGHT = 60
 PLAY_AGAIN_BUTTON_X = BOARD_WIDTH // 2 - PLAY_AGAIN_BUTTON_WIDTH // 2
-PLAY_AGAIN_BUTTON_Y = BOARD_HEIGHT // 2 + 50
+PLAY_AGAIN_BUTTON_Y = BOARD_HEIGHT // 2 + 50 # Vị trí nút Play Again (giữa màn hình)
 colors = [p.Color("white"), p.Color("gray")]
 
 # Tải ảnh quân cờ từ thư mục /images
@@ -185,7 +185,7 @@ def main():
                     sys.exit()
                 # mouse handler
                 elif event.type == p.MOUSEBUTTONDOWN:
-                    if not game_over:
+                    if not game_over: # Xử lý click khi game đang diễn ra
                         location = p.mouse.get_pos()  # (x, y) location of mouse
                         if location[0] < BOARD_WIDTH and location[1] < BOARD_HEIGHT:
                             # Chuyển đổi tọa độ mouse thành board coordinates
@@ -252,6 +252,20 @@ def main():
                                 ai_thinking = False
                             running_game = False  # Đặt cờ để thoát vòng lặp trò chơi
                             break  # Thoát vòng lặp event
+                    else: # Xử lý click khi game kết thúc (kiểm tra nút Play Again)
+                        location = p.mouse.get_pos()
+                        play_again_button_rect = p.Rect(PLAY_AGAIN_BUTTON_X, PLAY_AGAIN_BUTTON_Y, PLAY_AGAIN_BUTTON_WIDTH, PLAY_AGAIN_BUTTON_HEIGHT)
+                        if play_again_button_rect.collidepoint(location):
+                            # Reset game state để chơi lại
+                            game_state = ChessEngine.GameState()
+                            valid_moves = game_state.getValidMoves()
+                            square_selected = ()
+                            player_clicks = []
+                            move_made = False
+                            animate = False
+                            game_over = False # Đặt lại game_over thành False
+                            ai_thinking = False
+                            move_undone = True # Ngăn AI di chuyển ngay lập tức sau khi reset
 
                 # key handlers
                 elif event.type == p.KEYDOWN:
@@ -320,23 +334,26 @@ def main():
 
             drawGameState(screen, game_state, valid_moves, square_selected, move_log_font, button_font)
 
+            # Chỉ vẽ nhật ký nước đi nếu trò chơi chưa kết thúc
             if not game_over:
                 drawMoveLog(screen, game_state, move_log_font)
 
+            # Vẽ thông báo kết thúc game và nút Play Again
             if game_state.checkmate:
                 game_over = True
                 if game_state.white_to_move:
                     drawEndGameText(screen, 'Black wins by checkmate')
                 else:
                     drawEndGameText(screen, 'White wins by checkmate')
-
+                drawAgainButton(screen, button_font) # Vẽ nút Play Again sau thông báo
             elif game_state.stalemate:
                 game_over = True
                 drawEndGameText(screen, 'Stalemate')
-
+                drawAgainButton(screen, button_font) # Vẽ nút Play Again sau thông báo
             elif game_state.isThreefoldRepetition():
                 game_over = True
                 drawEndGameText(screen, 'Draw by threefold repetition')
+                drawAgainButton(screen, button_font) # Vẽ nút Play Again sau thông báo
 
             clock.tick(MAX_FPS)
             p.display.flip()
@@ -348,7 +365,7 @@ def drawGameState(screen, game_state, valid_moves, square_selected, move_log_fon
     drawBoard(screen)  # Vẽ bàn cờ
     highlightSquares(screen, game_state, valid_moves, square_selected)
     drawPieces(screen, game_state.board)  # Vẽ quân cờ
-    drawMoveLog(screen, game_state, move_log_font)
+    # drawMoveLog(screen, game_state, move_log_font) # Move log được vẽ riêng tùy thuộc vào trạng thái game_over
     drawUndoButton(screen, button_font)
     drawResetButton(screen, button_font)
     drawMenuButton(screen, button_font)
@@ -632,15 +649,29 @@ def animateMove(move, screen, board, clock):
 
 def drawAgainButton(screen, font):
     """
-    Draw again button
+    Vẽ nút "Play Again" với thiết kế cải tiến
     """
     button_rect = p.Rect(PLAY_AGAIN_BUTTON_X, PLAY_AGAIN_BUTTON_Y, PLAY_AGAIN_BUTTON_WIDTH, PLAY_AGAIN_BUTTON_HEIGHT)
-    p.draw.rect(screen, p.Color('white'), button_rect)
-    p.draw.rect(screen, p.Color('black'), button_rect, 2)
+
+    mouse_pos = p.mouse.get_pos()
+    is_hovered = button_rect.collidepoint(mouse_pos)
+
+    # Đổ bóng
+    shadow_color = p.Color(50, 50, 50, 100)
+    p.draw.rect(screen, shadow_color, button_rect.move(2, 2), border_radius=5)
+
+    # Nền nút (mô phỏng gradient)
+    top_color = p.Color(152, 251, 152) # PaleGreen
+    bottom_color = p.Color(50, 205, 50) # LimeGreen
+    # Màu khi hover
+    button_color = top_color if not is_hovered else p.Color(0, 150, 0) # Darker green on hover
+
+    p.draw.rect(screen, button_color, button_rect, border_radius=5)
+    p.draw.rect(screen, p.Color("black"), button_rect, 2, border_radius=5)
+
     text = font.render("Play Again", True, p.Color('black'))
     text_rect = text.get_rect(center=button_rect.center)
     screen.blit(text, text_rect)
     return button_rect
-
 if __name__ == "__main__":
     main()
