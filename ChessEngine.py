@@ -28,12 +28,37 @@ class GameState:
         self.castle_rights_log = [CastleRights(self.current_castling_rights.wks, self.current_castling_rights.bks,
                                                self.current_castling_rights.wqs, self.current_castling_rights.bqs)]
         self.position_count = {}  # Track position repetitions
+        self.halfmove_clock = 0  # đếm nước cho luật 50 nước
 
     def isThreefoldRepetition(self):
         """Check for threefold repetition"""
         # Convert current position to string
         position_key = self.boardToString()
         return self.position_count.get(position_key, 0) >= 3
+
+    def insufficientMaterial(self):
+        """
+        Kiểm tra nếu cả hai bên không đủ quân để chiếu hết
+        """
+        pieces = []
+        for row in self.board:
+            for square in row:
+                if square != "--":
+                    pieces.append(square)
+
+        # Chỉ còn vua hai bên
+        if pieces == ["wK", "bK"]:
+            return True
+
+        # Vua + 1 mã hoặc vua + 1 tượng vs vua
+        light_pieces = {"N", "B"}
+        if all(p[1] in {"K", "N", "B"} for p in pieces):
+            white_light = sum(1 for p in pieces if p[0] == "w" and p[1] in light_pieces)
+            black_light = sum(1 for p in pieces if p[0] == "b" and p[1] in light_pieces)
+            if white_light <= 1 and black_light <= 1:
+                return True
+
+        return False
 
     def boardToString(self):
         """Convert board to string for comparison"""
@@ -96,7 +121,13 @@ class GameState:
         self.updateCastleRights(move)
         self.castle_rights_log.append(CastleRights(self.current_castling_rights.wks, self.current_castling_rights.bks,
                                                    self.current_castling_rights.wqs, self.current_castling_rights.bqs))
-        # Update position count AFTER making move
+
+        # Undate bộ đếm 50 nước
+        if move.piece_captured == "--" and move.piece_moved[1] != "p":  # không ăn quân, không đi tốt
+            self.halfmove_clock += 1
+        else:
+            self.halfmove_clock = 0
+        # Update lịch sử vị trí
         position_key = self.boardToString()
         self.position_count[position_key] = self.position_count.get(position_key, 0) + 1
 
@@ -229,8 +260,9 @@ class GameState:
             if self.inCheck():
                 self.checkmate = True
             else:
-                # TODO stalemate on repeated moves
                 self.stalemate = True
+        elif self.insufficientMaterial() or self.isThreefoldRepetition() or self.halfmove_clock >= 100:
+            self.stalemate = True
         else:
             self.checkmate = False
             self.stalemate = False
